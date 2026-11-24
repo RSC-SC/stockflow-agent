@@ -49,3 +49,7 @@ logs/
 docs/Projeto Agente IA-SC-TEC.pdf
 *.pdf
 
+# Documentation draft / vision
+docs/visao_do_agente.md
+
+
