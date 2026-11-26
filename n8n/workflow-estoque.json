@@ -1,0 +1,261 @@
+{
+  "name": "StockFlow - Alertas de Estoque Crítico.",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "alerta-estoque",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -736,
+        -160
+      ],
+      "id": "6ff6faf9-8124-404a-875a-744a2e74289f",
+      "name": "Webhook",
+      "webhookId": "1de9dfad-e5d5-4283-b934-3e38a36fd913"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "b92ecd93-a6e1-4bc5-835c-696a72ca1f1b",
+              "leftValue": "={{ $json.body.stock_status }}",
+              "rightValue": "esgotado",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -512,
+        -160
+      ],
+      "id": "c1c1aa15-46f3-4e50-9cc5-9986efab0fff",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "db9a54d6-41e2-4a95-9fe5-ae73d5e0f2f7",
+              "name": "nivel_urgencia",
+              "value": "CRITICO_ESGOTADO",
+              "type": "string"
+            },
+            {
+              "id": "9abdba2d-4872-40f9-a06a-83480b211b94",
+              "name": "codigo",
+              "value": "{{ $('Webhook').item.json.body.codigo }}",
+              "type": "string"
+            },
+            {
+              "id": "c950a96f-707f-4437-8ef3-aeea7bbb7816",
+              "name": "produto",
+              "value": "={{ $('Webhook').item.json.body.nome }}",
+              "type": "string"
+            },
+            {
+              "id": "91c23264-3710-40d6-96db-e727ff2941a9",
+              "name": "saldo",
+              "value": "0",
+              "type": "string"
+            },
+            {
+              "id": "abd3ca01-b40c-406e-8488-6f42cd4a7e9b",
+              "name": "mensagem",
+              "value": "🚨 ALERTA MÁXIMO: Produto com estoque zerado no armazém. Necessário pedido de compra imediato!",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        -288,
+        -256
+      ],
+      "id": "0cb467d5-1d6a-41bd-83d4-403f5f7ae656",
+      "name": "Alerta Emergencial"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "4090d521-1f93-48b7-b7a6-c6dbda661adc",
+              "name": "nivel_urgencia",
+              "value": "ATENCAO_BAIXO",
+              "type": "string"
+            },
+            {
+              "id": "51ce8667-12c8-4ad4-9a34-d58bc3977a2b",
+              "name": "codigo",
+              "value": "={{ $('Webhook').item.json.body.codigo }}",
+              "type": "string"
+            },
+            {
+              "id": "65ed5b4d-89e2-4da6-b84a-a2fe50f71c7a",
+              "name": "produto",
+              "value": "={{ $('Webhook').item.json.body.nome }}",
+              "type": "string"
+            },
+            {
+              "id": "c414b713-8bf4-4b85-b94e-60bbba7d0a33",
+              "name": "saldo",
+              "value": "={{ $('Webhook').item.json.body.quantidade_atual }}",
+              "type": "string"
+            },
+            {
+              "id": "0d353f70-fc75-4c71-b892-195272cbd645",
+              "name": "minimo",
+              "value": "={{ $('Webhook').item.json.body.estoque_minimo }}",
+              "type": "string"
+            },
+            {
+              "id": "ff4213b5-58d9-479f-af94-73d0cecf00f9",
+              "name": "mensagem",
+              "value": "⚠️ ATENÇÃO: Saldo abaixo do estoque de segurança. Providenciar reabastecimento.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        -288,
+        -64
+      ],
+      "id": "35e2bd03-cae0-47f6-b222-ea065276c499",
+      "name": "Alerta Preventivo"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"status\": \"processado_com_sucesso\",\n  \"workflow\": \"StockFlow-Alertas\",\n  \"urgencia\": \"={{ $json.nivel_urgencia }}\",\n  \"produto\": \"={{ $json.produto }}\",\n  \"codigo\": \"={{ $json.codigo }}\",\n  \"notificacao\": \"={{ $json.mensagem }}\",\n  \"processado_em\": \"={{ $now.toISO() }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        288,
+        -448
+      ],
+      "id": "c4aa39ac-745d-4027-8649-ed2cdbeef7f0",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $('Webhook').item.json.body.email_remetente }}",
+        "toEmail": "={{ $('Webhook').item.json.body.email_destinatario }}",
+        "subject": "=={{ $json.nivel_urgencia === 'CRITICO_ESGOTADO' ? '🚨 [URGENTE]' : '⚠️ [ATENÇÃO]' }} StockFlow: Alerta de Estoque - {{ $json.produto }} ({{ $json.codigo }})",
+        "html": "=<div style=\"font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; background-color: #ffffff;\">\n  <h2 style=\"color: #1e293b; border-bottom: 2px solid #3b82f6; padding-bottom: 10px;\">\n    📦 StockFlow Agent — Alerta de Inventário\n  </h2>\n  \n  <p style=\"font-size: 15px; color: #475569;\">\n    O agente de IA detectou um produto que requer atenção no estoque:\n  </p>\n\n  <div style=\"background-color: #f8fafc; border-left: 4px solid #ef4444; padding: 15px; margin: 20px 0; border-radius: 4px;\">\n    <p style=\"margin: 5px 0;\"><strong>Código:</strong> {{ $json.codigo }}</p>\n    <p style=\"margin: 5px 0;\"><strong>Produto:</strong> {{ $json.produto }}</p>\n    <p style=\"margin: 5px 0;\"><strong>Quantidade Atual:</strong> <span style=\"color: #dc2626; font-weight: bold;\">{{ $json.saldo }}</span></p>\n    <p style=\"margin: 5px 0;\"><strong>Estoque Mínimo de Segurança:</strong> {{ $json.minimo || 'N/A' }}</p>\n    <p style=\"margin: 5px 0;\"><strong>Nível de Urgência:</strong> <span style=\"background-color: #fee2e2; color: #991b1b; padding: 2px 6px; border-radius: 4px; font-weight: bold;\">{{ $json.nivel_urgencia }}</span></p>\n  </div>\n\n  <div style=\"background-color: #ecfdf5; border: 1px solid #10b981; border-radius: 4px; padding: 12px; margin: 20px 0;\">\n    <p style=\"margin: 0; color: #065f46; font-size: 14px;\">\n      <strong>Orientação do Agente:</strong> {{ $json.mensagem }}\n    </p>\n  </div>\n\n  <hr style=\"border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;\">\n  <p style=\"font-size: 12px; color: #94a3b8; text-align: center;\">\n    Disparado automaticamente pelo <strong>StockFlow Agent</strong> via automação n8n na Cloud.<br>\n    Host da API: <code>http://150.136.45.59:8082</code>\n  </p>\n</div>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        16,
+        -160
+      ],
+      "id": "4e299bee-f3a6-4532-9f34-1cb4ff6e879e",
+      "name": "Send an Email",
+      "webhookId": "ac461c14-be10-4e52-976e-4bae9ca16629",
+      "credentials": {
+        "smtp": {
+          "id": "Rszd4HzzN7w8NxnX",
+          "name": "SMTP account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Alerta Emergencial",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Alerta Preventivo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Alerta Emergencial": {
+      "main": [
+        [
+          {
+            "node": "Send an Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Alerta Preventivo": {
+      "main": [
+        [
+          {
+            "node": "Send an Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "255bae39-f164-441b-8c9f-51369a2a7e50",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "a66bc384e9c592c45f66010360d9b8ebd6686dc3380adee814b3d4c3c696ef89"
+  },
+  "nodeGroups": [],
+  "id": "9e6UrQo12stN8jMW",
+  "tags": []
+}
