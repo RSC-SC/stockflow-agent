@@ -60,3 +60,5 @@ class AgentState(TypedDict, total=False):
     stock_status: Optional[StockStatus]
     alert_triggered: bool
     action_taken: Optional[str]
+    n8n_dispatched: Optional[bool]
+    n8n_response: Optional[Dict[str, Any]]
