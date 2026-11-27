@@ -4,18 +4,18 @@ Este diretório contém os artefatos de integração da aplicação **StockFlow 
 
 ---
 
-## 🧭 Visão Geral do Workflow
+## 🧭 Visão Geral e Arquitetura do Workflow
 
 O workflow implementado no n8n na Cloud (`StockFlow - Alertas de Estoque Crítico.`) atua como uma esteira automatizada de notificação e governança para a equipe de compras e logística quando o agente de IA identifica situações críticas no inventário:
 
 ```mermaid
 flowchart LR
-    A["1. Webhook Trigger<br><code>POST /alerta-estoque</code>"] --> B{"2. Nó IF<br><code>stock_status == 'esgotado'</code>"}
-    B -->|Sim / True| C1["3A. Alerta Emergencial<br><code>CRITICO_ESGOTADO</code>"]
-    B -->|Não / False| C2["3B. Alerta Preventivo<br><code>ATENCAO_BAIXO</code>"]
-    C1 --> D["📧 4. Send an Email<br>Template HTML responsivo"]
-    C2 --> D
-    D --> E["5. Saída Observável<br>HTTP Response 200"]
+    Start(["Webhook"]) --> Decision{"Status Esgotado?"}
+    Decision -->|Sim| A["Alerta Emergencial"]
+    Decision -->|Não| B["Alerta Preventivo"]
+    A --> Email["Enviar E-mail"]
+    B --> Email
+    Email --> Fim(["Resposta 200"])
 ```
 
 ---
