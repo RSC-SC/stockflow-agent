@@ -14,6 +14,7 @@ from typing import Any, Callable, Dict, List, Literal, Optional
 from src.agent.prompts import SYSTEM_PROMPT
 from src.agent.state import AgentState, StockStatus
 from src.agent.llm import get_llm
+from src.tools.n8n_client import disparar_alerta_estoque_n8n
 from src.tools.stock_tool import (
     consultar_produto_tool,
     listar_produtos_tool,
@@ -244,6 +245,7 @@ def analysis_node(state: AgentState) -> Dict[str, Any]:
             "messages": [AIMessage(content=resposta)],
             "stock_status": "nao_encontrado" if erro_tipo == "produto_nao_encontrado" else "erro_api",
             "alert_triggered": False,
+            "n8n_dispatched": False,
             "action_taken": "analysis_completed_error",
         }
 
@@ -268,6 +270,7 @@ def analysis_node(state: AgentState) -> Dict[str, Any]:
             "messages": [AIMessage(content="\n".join(linhas))],
             "stock_status": "baixo" if criticos > 0 else "disponivel",
             "alert_triggered": criticos > 0,
+            "n8n_dispatched": False,
             "action_taken": "analysis_completed_listing",
         }
 
@@ -293,6 +296,17 @@ def analysis_node(state: AgentState) -> Dict[str, Any]:
             status_desc = "🟢 **DISPONÍVEL / NORMAL**"
             orientacao = "✅ **Regular:** O nível de estoque atende à margem de segurança recomendada."
 
+        n8n_dispatched = False
+        n8n_response = None
+        if alert:
+            n8n_res = disparar_alerta_estoque_n8n(product, status)
+            n8n_response = n8n_res
+            n8n_dispatched = n8n_res.get("disparado", False)
+            if n8n_dispatched:
+                orientacao += "\n\n🔔 *Alerta de compra despachado automaticamente para a equipe via n8n (e-mail enviado).*"
+            elif n8n_res.get("status") == "erro":
+                orientacao += f"\n\n⚠️ *Alerta n8n não entregue ({n8n_res.get('erro', 'falha de conexão')}).*"
+
         texto_final = (
             f"📦 **Análise de Estoque: {nome} (`{codigo}`)**\n\n"
             f"- **Categoria:** {categoria}\n"
@@ -306,6 +320,8 @@ def analysis_node(state: AgentState) -> Dict[str, Any]:
             "messages": [AIMessage(content=texto_final)],
             "stock_status": status,
             "alert_triggered": alert,
+            "n8n_dispatched": n8n_dispatched,
+            "n8n_response": n8n_response,
             "action_taken": f"analysis_completed_{status}",
         }
 
@@ -313,6 +329,7 @@ def analysis_node(state: AgentState) -> Dict[str, Any]:
     return {
         "stock_status": "nao_aplicavel",
         "alert_triggered": False,
+        "n8n_dispatched": False,
         "action_taken": "analysis_completed_without_product",
     }
 
